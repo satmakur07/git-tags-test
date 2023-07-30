@@ -1,0 +1,44 @@
+trigger:
+  branches:
+    include:
+      - master
+      - develop
+
+resources:
+  repositories:
+  - repository: git-tags-test
+    type: Github
+    endpoint: https://github.com/satmakur845/git-tag-release-test
+    name: satmakur845/git-tag-release-test
+
+  - repository: git-alternate-test 
+    type: Github
+    endpoint: https://github.com/satmakur845/Git-Alternate-test
+    name: satmakur845/Git-Alternate-test
+
+jobs:
+  - job: TagOnMerge
+    displayName: 'Tag on Merge'
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+      - checkout: git-tags-test
+      - checkout: git-alternate-test
+        persistCredentials: true
+
+      - bash: |
+          git config --global user.email "satmakur07@gmail.com"
+          git config --global user.name "satmakur845"
+
+          if [ "$BUILD_SOURCEBRANCH" == "refs/heads/master" ] || [ "$BUILD_SOURCEBRANCH" == "refs/heads/develop" ]; then
+            version=$(date +"%y%m%d%H%M%S")
+            tag=v$version
+
+            git -c http.extraheader="AUTHORIZATION: bearer $(PAT)" tag $tag $(Build.SourceVersion)
+            git -c http.extraheader="AUTHORIZATION: bearer $(PAT)" push origin $tag
+          fi
+
+        env:
+          PAT: $(PAT)
+        displayName: 'Create Release Tag'
